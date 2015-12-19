@@ -19,9 +19,12 @@ package com.example.android.sunshine.app;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.ShareActionProvider;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,7 +38,7 @@ public class DetailActivity extends ActionBarActivity {
         setContentView(R.layout.activity_detail);
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new PlaceholderFragment())
+                    .add(R.id.container, new DetailFragment())
                     .commit();
         }
     }
@@ -45,6 +48,7 @@ public class DetailActivity extends ActionBarActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.detail, menu);
+
         return true;
     }
 
@@ -57,6 +61,9 @@ public class DetailActivity extends ActionBarActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+
             return true;
         }
 
@@ -66,9 +73,43 @@ public class DetailActivity extends ActionBarActivity {
     /**
      * A placeholder fragment containing a simple view.
      */
-    public static class PlaceholderFragment extends Fragment {
+    public static class DetailFragment extends Fragment {
 
-        public PlaceholderFragment() {
+        private String mForecast;
+
+        public DetailFragment() {
+            this.setHasOptionsMenu(true);
+        }
+
+        /**
+         * Initialize the contents of the Activity's standard options menu.  You
+         * should place your menu items in to <var>menu</var>.  For this method
+         * to be called, you must have first called {@link #setHasOptionsMenu}.  See
+         * {@link Activity#onCreateOptionsMenu(Menu) Activity.onCreateOptionsMenu}
+         * for more information.
+         *
+         * @param menu     The options menu in which you place your items.
+         * @param inflater
+         * @see #setHasOptionsMenu
+         * @see #onPrepareOptionsMenu
+         * @see #onOptionsItemSelected
+         */
+        @Override
+        public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+            // Inflates the menu
+            inflater.inflate(R.menu.detailfragment, menu);
+
+            // Retrieve the share menu item
+            MenuItem menuItem = menu.findItem(R.id.action_share);
+
+            // Get the sahre ation provider
+            ShareActionProvider shareActionProvider =
+                    (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+
+            // Attach an intent to the share ation provider
+            if (shareActionProvider != null) {
+                shareActionProvider.setShareIntent(createShareForecastIntent());
+            }
         }
 
         @Override
@@ -78,12 +119,23 @@ public class DetailActivity extends ActionBarActivity {
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
 
             Intent intent = getActivity().getIntent();
+
+            // Validates the intent
             if ((intent != null) && (intent.hasExtra(Intent.EXTRA_TEXT))) {
                 TextView details = (TextView) rootView.findViewById(R.id.details_textview);
                 details.setText(intent.getStringExtra(Intent.EXTRA_TEXT));
+
+                mForecast = intent.getStringExtra(Intent.EXTRA_TEXT);
             }
 
             return rootView;
+        }
+
+        public Intent createShareForecastIntent() {
+            return new Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_TEXT,
+                                                           mForecast + " #SunshineApp")
+                                                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET)
+                                                 .setType("text/plain");
         }
     }
 }

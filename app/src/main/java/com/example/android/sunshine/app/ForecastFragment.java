@@ -1,8 +1,10 @@
 package com.example.android.sunshine.app;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.text.format.Time;
@@ -51,25 +53,26 @@ public class ForecastFragment extends Fragment {
         this.setHasOptionsMenu(true);
     }
 
+    /**
+     * Called when the Fragment is visible to the user.  This is generally
+     * tied to {@link Activity#onStart() Activity.onStart} of the containing
+     * Activity's lifecycle.
+     */
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
-        ArrayList<String> weekForecast = new ArrayList<>();
-        weekForecast.add("Today - Sunny - 88/63");
-        weekForecast.add("Tommorrow - Rainy - 70/63");
-        weekForecast.add("Tuesday - Rainy - 14/63");
-        weekForecast.add("Wednesday - Rainy - 62/63");
-        weekForecast.add("Thursday - Cloudy - 50/63");
-        weekForecast.add("Friday - Foggy - 65/63");
-        weekForecast.add("Saturday - Cloudy - 44/63");
-
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         mForecastAdapter = new ArrayAdapter<String>(getActivity(),
                 R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,
-                weekForecast);
+                new ArrayList<String>());
 
         ListView forecast = (ListView) rootView.findViewById(R.id.listview_forecast);
         forecast.setAdapter(mForecastAdapter);
@@ -78,7 +81,7 @@ public class ForecastFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent detailActivityIntent = new Intent(getActivity(), DetailActivity.class);
                 detailActivityIntent.putExtra(Intent.EXTRA_TEXT,
-                                              mForecastAdapter.getItem(position));
+                        mForecastAdapter.getItem(position));
                 startActivity(detailActivityIntent);
             }
         });
@@ -95,7 +98,7 @@ public class ForecastFragment extends Fragment {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
-            new FetchWeatherTask().execute("6693674");
+            updateWeather();
 
             return true;
         }
@@ -108,14 +111,13 @@ public class ForecastFragment extends Fragment {
         inflater.inflate(R.menu.forecastfragment, menu);
     }
 
-    /* The date/time conversion code is going to be moved outside the asynctask later,
-    * so for convenience we're breaking it out into its own method now.
-    */
-    private String getReadableDateString(long time){
-        // Because the API returns a unix timestamp (measured in seconds),
-        // it must be converted to milliseconds in order to be converted to valid date.
-        SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
-        return shortenedDateFormat.format(time);
+
+    private void updateWeather() {
+        SharedPreferences sharedPrefs =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+        new FetchWeatherTask()
+                .execute(sharedPrefs.getString(getString(R.string.pref_location_key),
+                                               getString(R.string.pref_default_city_name)));
     }
 
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
@@ -155,14 +157,14 @@ public class ForecastFragment extends Fragment {
             try {
                 final String FORECAST_BASE_URL =
                         "http://api.openweathermap.org/data/2.5/forecast/daily";
-                final String QUERY_PARAM = "id";
+                final String QUERY_PARAM = "q";
                 final String UNITS_PARAM = "units";
                 final String DAYS_PARAM = "cnt";
                 final String APPID_PARAM = "appid";
 
                 Uri.Builder builder = new Uri.Builder();
                 builder.encodedPath(FORECAST_BASE_URL);
-                builder.appendQueryParameter(QUERY_PARAM, params[0])
+                builder.appendQueryParameter(QUERY_PARAM, params[0].replaceAll(" ", ""))
                        .appendQueryParameter(UNITS_PARAM, format)
                        .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
                        .appendQueryParameter(APPID_PARAM, appId);
@@ -307,12 +309,30 @@ public class ForecastFragment extends Fragment {
                 double high = temperatureObject.getDouble(OWM_MAX);
                 double low = temperatureObject.getDouble(OWM_MIN);
 
+                if (!PreferenceManager.getDefaultSharedPreferences(getActivity())
+                        .getString(getString(R.string.pref_temp_units_key),
+                                   getString(R.string.pref_default_temp_units))
+                        .equals(getString(R.string.pref_default_temp_units))) {
+                    high = (high * 9 / 5) + 32;
+                    low = (low * 9 / 5) + 32;
+                }
+
                 highAndLow = formatHighLows(high, low);
                 resultStrs[i] = day + " - " + description + " - " + highAndLow;
             }
 
             return resultStrs;
 
+        }
+
+        /* The date/time conversion code is going to be moved outside the asynctask later,
+        * so for convenience we're breaking it out into its own method now.
+        */
+        private String getReadableDateString(long time){
+            // Because the API returns a unix timestamp (measured in seconds),
+            // it must be converted to milliseconds in order to be converted to valid date.
+            SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
+            return shortenedDateFormat.format(time);
         }
     }
 }
