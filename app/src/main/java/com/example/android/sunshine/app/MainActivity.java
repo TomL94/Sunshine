@@ -2,7 +2,6 @@ package com.example.android.sunshine.app;
 
 import android.content.Intent;
 import android.net.Uri;
-import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -67,10 +66,7 @@ public class MainActivity extends ActionBarActivity {
             startActivity(intent);
         } else if (id == R.id.action_show_location) {
             showMap(Uri.parse("geo:0,0").buildUpon()
-                        .appendQueryParameter("q", PreferenceManager
-                            .getDefaultSharedPreferences(this)
-                            .getString(getString(R.string.pref_location_key),
-                                    getString(R.string.pref_default_city_name)))
+                        .appendQueryParameter("q", Utility.getPreferredLocation(this))
                         .build());
 
             return true;
@@ -96,7 +92,6 @@ public class MainActivity extends ActionBarActivity {
     public void showMap(Uri geoLocation) {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(geoLocation);
-        //intent.setPackage("com.google.android.apps.maps");
         if (intent.resolveActivity(getPackageManager()) != null) {
             startActivity(intent);
         }
