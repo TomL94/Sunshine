@@ -12,7 +12,10 @@
         
         <provider
             android:authorities="com.example.android.sunshine.app"
-            android:name=".data.WeatherProvider">
+            android:name=".data.WeatherProvider"
+            android:enabled="true"
+            android:exported="true">
+
         </provider>
         
         <activity
@@ -41,5 +44,11 @@
                 android:value="com.example.android.sunshine.app.MainActivity" />
         </activity>
     </application>
+
+    <permission android:name="com.example.android.sunshine.app.LICENSE_TO_KILL"
+        android:protectionLevel="dangerous"
+        android:label="Licensed to Kill">
+
+    </permission>
 
 </manifest>

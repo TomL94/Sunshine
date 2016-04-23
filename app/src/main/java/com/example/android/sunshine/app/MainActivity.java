@@ -11,6 +11,8 @@ import android.view.MenuItem;
 public class MainActivity extends ActionBarActivity {
 
     private static String LOG_TAG = MainActivity.class.getSimpleName();
+    private String mLocation;
+    private final String FORECASTFRAGMENT_TAG = "ForacseFragmentTag";
 
     @Override
     protected void onStart() {
@@ -30,6 +32,17 @@ public class MainActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
 
+        if (Utility.getPreferredLocation(this) != mLocation) {
+            ForecastFragment frag = (ForecastFragment) getSupportFragmentManager()
+                    .findFragmentByTag(FORECASTFRAGMENT_TAG);
+
+            // Calls a fragment method that updates the weather and puts it to the db
+            frag.onLocationChange();
+
+            // Updateing the current location
+            mLocation = Utility.getPreferredLocation(this);
+        }
+
         Log.d(LOG_TAG, "Resumed");
     }
 
@@ -39,9 +52,11 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new ForecastFragment())
+                    .add(R.id.container, new ForecastFragment(), FORECASTFRAGMENT_TAG)
                     .commit();
         }
+
+        mLocation = Utility.getPreferredLocation(this);
 
         Log.d(LOG_TAG, "Created");
     }
